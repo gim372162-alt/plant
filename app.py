@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-import random
 
 # --- 앱 설정 ---
 st.set_page_config(page_title="현실 밀착! 식물 MBTI 테스트", layout="wide")
 
-# --- 1. MBTI 식물 데이터 (현실 식물 버전) ---
+# --- 1. MBTI 식물 데이터 ---
 PLANT_DATA = {
     "ENFP": {"name": "몬스테라", "desc": "자유분방하게 잎을 찢으며 성장하는 교실의 분위기 메이커!", "img": "🌿"},
     "INFJ": {"name": "라벤더", "desc": "고요한 향기로 주변을 치유하는 사색적인 평화주의자.", "img": "💜"},
@@ -37,7 +36,7 @@ COMPAT = {
     "ENTJ": {"best": "INTP", "worst": "ISFP"}, "INTP": {"best": "ENTJ", "worst": "ESFJ"}
 }
 
-# --- 3. 18개 질문 데이터 (심화 버전) ---
+# --- 3. 18개 질문 데이터 ---
 QUESTIONS = [
     {"q": "식물 박람회에 갔을 때 나는?", "A": "모르는 사람들과 식물 정보를 나누며 활기차게 구경한다.", "B": "조용히 이어폰을 끼고 식물 하나하나를 관찰한다.", "type": "E/I"},
     {"q": "내 방에 식물을 둔다면?", "A": "거실이나 입구처럼 사람들이 잘 보는 곳에 둔다.", "B": "내 침대 옆이나 나만 볼 수 있는 구석진 곳에 둔다.", "type": "E/I"},
@@ -59,7 +58,7 @@ QUESTIONS = [
     {"q": "식물 영양제를 줄 때?", "A": "설명서에 나온 정량을 정확히 지켜서 준다.", "B": "이 정도면 되겠지 싶을 때 감으로 대충 듬뿍 준다.", "type": "P/J"}
 ]
 
-# --- 4. 실시간 DB 시뮬레이션 ---
+# --- 4. 실시간 DB 초기화 ---
 if "class_db" not in st.session_state:
     st.session_state.class_db = pd.DataFrame([
         {"반코드": "101", "이름": "김민준", "MBTI": "ENTJ", "식물": "인도고무나무"},
@@ -72,15 +71,13 @@ st.markdown("""
     @keyframes pulse { 0% { border: 2px solid #10b981; box-shadow: 0 0 5px #10b981; } 50% { border: 2px solid #34d399; box-shadow: 0 0 20px #10b981; } 100% { border: 2px solid #10b981; box-shadow: 0 0 5px #10b981; } }
     .fantasy-card { animation: pulse 2s infinite; background-color: #ecfdf5; padding: 20px; border-radius: 15px; margin: 10px 0; }
     .disaster-card { border: 2px solid #ef4444; background-color: #fef2f2; padding: 20px; border-radius: 15px; margin: 10px 0; }
-    .normal-card { border: 1px solid #d1d5db; padding: 15px; border-radius: 10px; margin: 5px 0; }
 </style>
 """, unsafe_allow_html=True)
 
 # --- 메인 화면 ---
 st.title("🌿 우리 반 리얼 식물 MBTI 테스트")
-st.write("18문항의 정교한 질문으로 당신의 소울 식물을 찾고, 우리 반 통계를 확인하세요!")
+st.write("18문항의 질문으로 당신의 소울 식물을 찾고, 우리 반 통계를 확인하세요!")
 
-# 모바일 편의를 위해 입력란을 화면 상단으로 전면 배치
 st.markdown("### 🔑 본인 정보를 입력하세요")
 col_in1, col_in2 = st.columns(2)
 with col_in1:
@@ -95,8 +92,27 @@ if u_name:
     
     with tab1:
         st.subheader(f"🌱 {u_name}님을 위한 18개 질문")
-        with st.form("mbti_form"):
-            user_ans = {}
+        
+        user_ans = {}
+        for i, q in enumerate(QUESTIONS):
+            # 절대 깨지지 않는 안전한 라디오 버튼 문법으로 전면 수정
+            user_ans[i] = st.radio(f"**Q{i+1}. {q['q']}**", [q["A"], q["B"]], key=f"q_{i}")
+            st.write("")
+        
+        submitted = st.button("🌿 나의 식물 결과 확인하기")
+        
+        if submitted:
+            scores = {"E/I": 0, "S/N": 0, "F/T": 0, "P/J": 0}
             for i, q in enumerate(QUESTIONS):
-                st.write(f"**Q{i+1}. {q['q']}**")
-                user_ans
+                if user_ans[i] == q["A"]: scores[q["type"]] += 1
+                else: scores[q["type"]] -= 1
+            
+            res_mbti = (
+                ("E" if scores["E/I"] >= 0 else "I") +
+                ("S" if scores["S/N"] >= 0 else "N") +
+                ("F" if scores["F/T"] >= 0 else "T") +
+                ("P" if scores["P/J"] >= 0 else "J")
+            )
+            
+            new_data = pd.DataFrame([{"반코드": c_code, "이름": u_name, "MBTI": res_mbti, "식물": PLANT_DATA[res_mbti]["name"]}])
+            st.session_state.class_db = pd.concat(
