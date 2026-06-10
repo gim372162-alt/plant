@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 
 # 1. 페이지 기본 설정 (스마트폰/태블릿 최적화)
-st.set_page_config(page_title="우리 반 식물 MBTI 정원", layout="wide")
+st.set_page_config(page_title="우리 반 실시간 식물 MBTI 정원", layout="wide")
 
-# 안전한 인라인 CSS 테마 주입
+# 안전한 인라인 CSS 테마 주입 (디자인 및 게이지바)
 st.markdown("""
 <style>
     @keyframes pulse { 0% { border: 3px solid #10b981; box-shadow: 0 0 5px #10b981; } 50% { border: 3px solid #34d399; box-shadow: 0 0 20px #10b981; } 100% { border: 3px solid #10b981; box-shadow: 0 0 5px #10b981; } }
@@ -16,7 +16,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 2. 16가지 식물의 정확한 고화질 사진 및 매뉴얼 상세 데이터 (KeyError 완벽 차단)
+# 2. 16가지 식물의 정확한 고화질 사진 및 상세 특징 데이터
 PLANT_DB = {
     "ENFP": {"n": "몬스테라", "d": "자유분방하게 잎을 찢으며 성장하는 교실의 분위기 메이커! 에너지가 넘치고 언제나 새로운 즐거움을 찾아 나섭니다.", "img": "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=600"},
     "INFJ": {"n": "라벤더", "d": "고요하고 깊은 향기로 주변 사람들의 마음을 치유하는 사색적인 평화주의자. 보이지 않는 곳에서 깊은 통찰력을 발휘합니다.", "img": "https://images.unsplash.com/photo-1528183429752-a97d0bf99b5a?w=600"},
@@ -24,7 +24,7 @@ PLANT_DB = {
     "ISFP": {"n": "미모사", "d": "섬세한 감수성을 지닌 따뜻한 예술가. 평소에는 다정하지만 다가가면 수줍게 잎을 접는 매력적인 성격의 소유자입니다.", "img": "https://images.unsplash.com/photo-1622322062602-0e9e1119560a?w=600"},
     "ENTP": {"n": "파리지옥", "d": "톡톡 튀는 아이디어와 독특한 매력으로 단숨에 시선을 사로잡는 모험가. 지루한 틀에 갇히는 것을 가장 싫어합니다.", "img": "https://images.unsplash.com/photo-1525498128493-380d1990a112?w=600"},
     "INTJ": {"n": "유칼립투스", "d": "똑똑하고 독립적이며 자신만의 뚜렷한 주관을 가진 냉철한 전략가. 논리적이고 깊이 있는 지식을 탐구하는 것을 좋아합니다.", "img": "https://images.unsplash.com/photo-1545241047-6083a3684587?w=600"},
-    "ESFP": {"n": "해바라기", "d": "언제나 태양을 바라보듯 밝고 긍정적인 에너지를 뿜어내는 교실의 슈퍼스타! 친구들과 어울리는 매 순간을 사랑합니다.", "img": "https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=600"}, # 정확한 해바라기 이미지로 전면 수정
+    "ESFP": {"n": "해바라기", "d": "언제나 태양을 바라보듯 밝고 긍정적인 에너지를 뿜어내는 교실의 슈퍼스타! 친구들과 어울리는 매 순간을 사랑합니다.", "img": "https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=600"},
     "ISTP": {"n": "틸란드시아", "d": "흙 없이도 혼자서 바람을 맞으며 척척 잘 살아가는 쿨한 개인주의 식물. 상황 적응력이 뛰어나고 다방면에 손재주가 좋습니다.", "img": "https://images.unsplash.com/photo-1508608825823-187510526732?w=600"},
     "ENFJ": {"n": "스킨답서스", "d": "주변 뼈대를 부드럽게 감싸 안으며 모두를 행복하게 만드는 다정한 가이드. 타인의 성장을 격려하고 돕는 데 아낌이 없습니다.", "img": "https://images.unsplash.com/photo-1599202860130-f600f4948364?w=600"},
     "ISFJ": {"n": "테이블야자", "d": "티 내지 않고 묵묵히 공간의 공기를 정화해주는 배려 깊은 수호자. 주변 사람들을 꼼꼼하고 따뜻하게 챙겨줍니다.", "img": "https://images.unsplash.com/photo-1512428813834-c702c7702b78?w=600"},
@@ -97,11 +97,11 @@ if not gamer_name:
 else:
     tab_run, tab_view = st.tabs(["📝 소울 식물 테스트 진입", "📊 우리 반 실시간 가드닝 대시보드"])
 
-    with tab_test_panel := tab_run:
+    # SyntaxError의 주범이었던 바다코끼리 문법을 완벽히 일반 표준 문법으로 우회 수정
+    with tab_run:
         st.subheader(f"🌱 {gamer_name} 학생을 위한 전용 문항")
         user_selections = {}
         
-        # 화면 깨짐 현상을 원천 방지하는 안전한 순회 렌더링
         for idx, item in enumerate(QUESTIONS):
             user_selections[idx] = st.radio(
                 f"**Q{idx+1}. {item['q']}**", 
@@ -110,7 +110,6 @@ else:
             )
             st.write("")
 
-        # 폼 제한을 우회하여 무조건 작동하는 안전 단독 버튼
         if st.button("🌿 나의 소울 식물 분석 및 결과 제출"):
             totals = {"E/I": 0, "S/N": 0, "F/T": 0, "P/J": 0}
             for idx, item in enumerate(QUESTIONS):
@@ -128,7 +127,7 @@ else:
             
             extracted_plant = PLANT_DB[final_mbti]
             
-            # 중복 데이터 실시간 오버라이트 처리
+            # 데이터 오버라이트 처리
             st.session_state.class_data_store = [row for row in st.session_state.class_data_store if not (row["반"] == class_code and row["이름"] == gamer_name)]
             st.session_state.class_data_store.append({
                 "반": class_code,
@@ -140,7 +139,7 @@ else:
             st.balloons()
             st.success("🎉 분석 완료! 결과가 대시보드 정원에 실시간 반영되었습니다. [📊 우리 반 실시간 가드닝 대시보드] 탭을 확인해 보세요!")
             
-            # 대망의 시각적 카드 영역 복구 완료
+            # 결과 카드 시각화 복구 완료
             panel_left, panel_right = st.columns([1, 1.4])
             with panel_left:
                 st.image(extracted_plant["img"], caption=f"나의 소울 식물: {extracted_plant['n']}", use_container_width=True)
@@ -152,7 +151,7 @@ else:
                 st.write(f"✨ 환상의 짝꿍 식물: **{PLANT_DB[MATCH_RULES[final_mbti]['b']]['n']}** ({MATCH_RULES[final_mbti]['b']})")
                 st.write(f"⚡ 환장의 짝꿍 식물: **{PLANT_DB[MATCH_RULES[final_mbti]['w']]['n']}** ({MATCH_RULES[final_mbti]['w']})")
 
-    with tab_view_panel := tab_view:
+    with tab_view:
         st.subheader(f"📊 {class_code}반 실시간 가드너 대시보드")
         master_df = pd.DataFrame(st.session_state.class_data_store)
         current_class_df = master_df[master_df["반"] == class_code]
@@ -205,7 +204,6 @@ else:
                         if row["이름"] == gamer_name:
                             continue
                         
-                        # 고정된 로직 기반의 정밀 퍼센트 산출 지수
                         base_match = sum(1 for char_a, char_b in zip(my_mbti_core, row["MBTI"]) if char_a == char_b)
                         
                         if row["MBTI"] == MATCH_RULES[my_mbti_core]["b"]:
