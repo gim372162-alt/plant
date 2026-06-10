@@ -2,14 +2,22 @@ import streamlit as st
 import pandas as pd
 import threading
 
-# 1. 멀티스레드 동시 접속 환경에서의 데이터 안전성 확보 (동시 제출 꼬임 방지)
+# 1. 자동 실시간 리프레시 라이브러리 내장 (미설치 시를 대비한 안전 가드)
+try:
+    from streamlit_autorefresh import st_autorefresh
+except ImportError:
+    import os
+    os.system("pip install streamlit-autorefresh")
+    from streamlit_autorefresh import st_autorefresh
+
+# 2. 동시 접속 환경을 위한 글로벌 스레드 락(Lock)
 if "db_lock" not in st.session_state:
     st.session_state.db_lock = threading.Lock()
 
-# 2. 페이지 기본 설정 및 모바일 기기 반응형 레이아웃 최적화
+# 3. 페이지 기본 설정 및 모바일 최적화
 st.set_page_config(page_title="우리 반 실시간 식물 MBTI 정원", layout="wide")
 
-# 고해상도 시각화를 위한 맞춤형 인라인 CSS 주입 (에러 유발 소지 차단)
+# 화면 레이아웃 및 디자인을 위한 CSS 주입
 st.markdown("""
 <style>
     @keyframes pulse { 0% { border: 3px solid #10b981; box-shadow: 0 0 5px #10b981; } 50% { border: 3px solid #34d399; box-shadow: 0 0 20px #10b981; } 100% { border: 3px solid #10b981; box-shadow: 0 0 5px #10b981; } }
@@ -22,7 +30,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. 중앙 서버 공유형 통합 데이터베이스 캐싱 구축
+# 4. 실시간 서버 공유형 싱글톤 데이터베이스 구축
 @st.cache_resource
 def get_global_database():
     return {
@@ -36,7 +44,7 @@ def get_global_database():
 
 global_db = get_global_database()
 
-# 4. 16가지 식물 성향 마스터 데이터 인덱스 (KeyError 검증 완료)
+# 5. 16가지 식물 및 성향 데이터 마스터 맵
 PLANT_MAP = {
     "ENFP": {"n": "몬스테라", "d": "자유분방하게 잎을 찢으며 성장하는 교실의 분위기 메이커! 에너지가 넘치고 언제나 새로운 즐거움을 찾아 나섭니다.", "img": "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=600"},
     "INFJ": {"n": "라벤더", "d": "고요하고 깊은 향기로 주변 사람들의 마음을 치유하는 사색적인 평화주의자. 보이지 않는 곳에서 깊은 통찰력을 발휘합니다.", "img": "https://images.unsplash.com/photo-1528183429752-a97d0bf99b5a?w=600"},
@@ -56,7 +64,7 @@ PLANT_MAP = {
     "INTP": {"n": "네펜데스", "d": "독창적인 구조와 원리를 끊임없이 분석하고 탐구하는 교실의 생각하는 가이드. 논리적이고 객관적인 진실을 추구합니다.", "img": "https://images.unsplash.com/photo-1599144365312-f28876a4ee0f?w=600"}
 }
 
-# 5. MBTI 간 상호 작용 궁합 매트릭스 규격
+# 6. 상호 관계 역학 궁합 매트릭스
 INTER_RULES = {
     "ENFP": {"b": "INFJ", "w": "ISTJ"}, "INFJ": {"b": "ENFP", "w": "ESTP"},
     "ESTJ": {"b": "ISFP", "w": "INFP"}, "ISFP": {"b": "ESTJ", "w": "ENTJ"},
@@ -68,7 +76,7 @@ INTER_RULES = {
     "ENTJ": {"b": "INTP", "w": "ISFP"}, "INTP": {"b": "ENTJ", "w": "ESFJ"}
 }
 
-# 6. 진단 평가 문항 (18개 고정 구조)
+# 7. 진단지 18문항 표준 데이터
 QUESTIONS = [
     {"q": "식물 박람회에 갔을 때 나는?", "A": "모르는 사람들과 식물 정보를 나누며 활기차게 구경한다.", "B": "조용히 이어폰을 끼고 식물 하나하나를 관찰한다.", "type": "E/I"},
     {"q": "내 방에 식물을 둔다면?", "A": "거실이나 입구처럼 사람들이 잘 보는 곳에 둔다.", "B": "내 침대 옆이나 나만 볼 수 있는 구석진 곳에 둔다.", "type": "E/I"},
@@ -90,11 +98,10 @@ QUESTIONS = [
     {"q": "식물 영양제를 줄 때?", "A": "설명서에 나온 정량을 정확히 지켜서 준다.", "B": "이 정도면 되겠지 싶을 때 감으로 대충 듬뿍 준다.", "type": "P/J"}
 ]
 
-# 7. 헤더 렌더링
+# 7. 타이틀 및 세션 관리 초기화
 st.title("🌿 우리 반 실시간 식물 MBTI 정원")
-st.write("단 하나의 화면에서 성향을 분석하고 반 전체 친구들과의 실시간 케미 정원을 즉시 구축합니다.")
+st.write("단 하나의 화면에서 성향을 분석하고 반 전체 친구들의 결과가 3초 간격으로 완전 자동 갱신됩니다.")
 
-# 학급 입장 세션 및 중복 방지 상태 초기화
 if "submitted" not in st.session_state:
     st.session_state.submitted = False
 if "my_mbti" not in st.session_state:
@@ -102,6 +109,7 @@ if "my_mbti" not in st.session_state:
 if "my_plant" not in st.session_state:
     st.session_state.my_plant = ""
 
+# 학급 정보 입력 칸
 st.markdown("### 🔑 가드너 정보 입력")
 c_col1, c_col2 = st.columns(2)
 with c_col1:
@@ -111,65 +119,67 @@ with c_col2:
 
 st.divider()
 
+# 8. [핵심 조치] 결과 페이지 조회 중일 때 다른 사람의 신규 제출을 백그라운드에서 감지해 3초마다 화면 자동 동기화 리프레시 가동
+if st.session_state.submitted:
+    st_autorefresh(interval=3000, limit=1000, key="classroom_gardening_sync")
+
 if not gamer_name:
-    st.info("💡 이름과 학급 코드를 입력하면 하단에 18문항 검사지가 나타납니다.")
+    st.info("💡 이름과 학급 코드를 입력하면 하단에 18문항 검사지가 즉시 나타납니다.")
 else:
-    # 8. 단일 화면 기반 테스트 문항 구현 (탭 제거)
-    st.header(f"📝 {gamer_name} 학생을 위한 소울 식물 진단")
-    st.write("모든 문항에 답변한 후 맨 아래의 제출 버튼을 누르세요.")
-    
-    selections = {}
-    for idx, item in enumerate(QUESTIONS):
-        selections[idx] = st.radio(
-            f"**Q{idx+1}. {item['q']}**",
-            [item["A"], item["B"]],
-            key=f"direct_q_{idx}"
-        )
-        st.write("")
-
-    if st.button("🌿 나의 소울 식물 분석 결과 최종 제출"):
-        totals = {"E/I": 0, "S/N": 0, "F/T": 0, "P/J": 0}
+    # 아직 제출하지 않은 경우 진단 평가지 노출
+    if not st.session_state.submitted:
+        st.header(f"📝 {gamer_name} 학생을 위한 소울 식물 진단")
+        st.write("모든 문항에 답변한 후 맨 아래의 제출 버튼을 누르세요.")
+        
+        selections = {}
         for idx, item in enumerate(QUESTIONS):
-            if selections[idx] == item["A"]:
-                totals[item["type"]] += 1
-            else:
-                totals[item["type"]] -= 1
-        
-        final_mbti = (
-            ("E" if totals["E/I"] >= 0 else "I") +
-            ("S" if totals["S/N"] >= 0 else "N") +
-            ("F" if totals["F/T"] >= 0 else "T") +
-            ("P" if totals["P/J"] >= 0 else "J")
-        )
-        
-        # 내부 글로벌 세션 상태 갱신
-        st.session_state.my_mbti = final_mbti
-        st.session_state.my_plant = PLANT_MAP[final_mbti]["n"]
-        st.session_state.submitted = True
-        
-        # 서버 데이터베이스 스레드 컴파일 저장
-        with st.session_state.db_lock:
-            master_list = global_db["garden_records"]
-            filtered_list = [r for r in master_list if not (r["반"] == class_code and r["이름"] == gamer_name)]
-            filtered_list.append({
-                "반": class_code,
-                "이름": gamer_name,
-                "MBTI": final_mbti,
-                "식물": PLANT_MAP[final_mbti]["n"]
-            })
-            global_db["garden_records"] = filtered_list
-            
-        st.balloons()
+            selections[idx] = st.radio(
+                f"**Q{idx+1}. {item['q']}**",
+                [item["A"], item["B"]],
+                key=f"direct_q_{idx}"
+            )
+            st.write("")
 
-    # 9. [핵심 조건 1] 결과 제출 완료 시 동일 화면 하단에 모든 내용 표출 조치
-    if st.session_state.submitted:
-        st.divider()
+        if st.button("🌿 나의 소울 식물 분석 결과 최종 제출"):
+            totals = {"E/I": 0, "S/N": 0, "F/T": 0, "P/J": 0}
+            for idx, item in enumerate(QUESTIONS):
+                if selections[idx] == item["A"]:
+                    totals[item["type"]] += 1
+                else:
+                    totals[item["type"]] -= 1
+            
+            final_mbti = (
+                ("E" if totals["E/I"] >= 0 else "I") +
+                ("S" if totals["S/N"] >= 0 else "N") +
+                ("F" if totals["F/T"] >= 0 else "T") +
+                ("P" if totals["P/J"] >= 0 else "J")
+            )
+            
+            st.session_state.my_mbti = final_mbti
+            st.session_state.my_plant = PLANT_MAP[final_mbti]["n"]
+            st.session_state.submitted = True
+            
+            with st.session_state.db_lock:
+                master_list = global_db["garden_records"]
+                filtered_list = [r for r in master_list if not (r["반"] == class_code and r["이름"] == gamer_name)]
+                filtered_list.append({
+                    "반": class_code,
+                    "이름": gamer_name,
+                    "MBTI": final_mbti,
+                    "식물": PLANT_MAP[final_mbti]["n"]
+                })
+                global_db["garden_records"] = filtered_list
+                
+            st.rerun()
+
+    # 결과 제출이 완료된 경우 단일 통합 대시보드 렌더링
+    else:
         st.markdown("## 🎉 분석 완료! 당신의 소울 식물 명세 및 학급 실시간 가드닝 정보")
         
-        # [핵심 조건 2] 내 mbti와 매칭 식물 고화질 사진 및 초정밀 특성 상세 카드화
         my_type = st.session_state.my_mbti
         spec = PLANT_MAP[my_type]
         
+        # 내 결과 및 식물 도감 카드 배치
         st.markdown("<div class='main-card'>", unsafe_allow_html=True)
         res_left, res_right = st.columns([1, 1.5])
         with res_left:
@@ -179,13 +189,13 @@ else:
             st.header(f"당신은 사계절 푸른 **[{spec['n']}]** 입니다!")
             st.markdown(f"#### 📖 식물 성격 기술서")
             st.info(spec["d"])
-            st.write(f"🔍 **생육 관리 팁:** 이 성향은 주변의 피드백과 환경에 민감하므로 상호 신뢰와 충분한 자유도가 보장될 때 가장 건강하고 독창적인 업적의 꽃을 피워냅니다.")
+            st.write(f"🔍 **생육 관리 팁:** 이 성향은 주변의 피드백과 교실 환경에 대단히 민감하므로, 따뜻한 신뢰와 충분한 개인적 자유가 보장될 때 고유의 독창적인 업적의 꽃을 가장 화려하게 피워냅니다.")
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.divider()
 
-        # [핵심 조건 3] 다른 친구들이 제출할 때마다 한눈에 요동치며 리프레시되는 대시보드 스크린
-        st.header(f"📊 {class_code}반 실시간 가드너 정원 상황판 (새로고침 자동 반영)")
+        # 실시간 자동 반영되는 반 전체 대시보드 영역
+        st.header(f"📊 {class_code}반 실시간 가드너 정원 상황판 (3초마다 자동 동기화 중 🔄)")
         
         active_records = global_db["garden_records"]
         class_df = pd.DataFrame(active_records)
@@ -203,24 +213,21 @@ else:
                 st.dataframe(class_df[["이름", "MBTI", "식물"]], use_container_width=True, hide_index=True)
                 
             with dash_right:
-                # [핵심 조건 4] 우리 반 전체의 환상 궁합 및 환장 궁합 실시간 상호 매칭 전원 공개맵
                 st.write("#### 🤝 우리 반 전체 실시간 워스트 & 베스트 크로스 매칭 지도")
                 
                 f_count = 0
                 d_count = 0
-                
                 f_html = ""
                 d_html = ""
                 
-                # 전체 학생 리스트 간의 관계망을 연산하여 매칭 판정
                 student_list = class_df.to_dict('records')
                 
+                # 반 전체 인원들 간의 관계쌍 분석 및 공개 카드화 연산
                 for i in range(len(student_list)):
                     for j in range(i + 1, len(student_list)):
                         s1 = student_list[i]
                         s2 = student_list[j]
                         
-                        # s1 기준 베스트/워스트 정의
                         mbti_1 = s1["MBTI"]
                         mbti_2 = s2["MBTI"]
                         
@@ -237,7 +244,7 @@ else:
                 else:
                     st.caption("아직 정원에 100% 매칭되는 환상의 단짝 조가 발견되지 않았습니다.")
                     
-                st.error("⚡ 실시간 워스트 주의 조 명단")
+                st.error("⚡ 실시간 워스트 주의 명단")
                 if d_count > 0:
                     st.markdown(d_html, unsafe_allow_html=True)
                 else:
