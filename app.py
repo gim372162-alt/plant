@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
 
-# --- 앱 설정 ---
-st.set_page_config(page_title="현실 밀착! 식물 MBTI 테스트", layout="wide")
+# 1. 페이지 기본 설정 (태블릿/모바일 모두 최적화)
+st.set_page_config(page_title="우리 반 식물 MBTI", layout="wide")
 
-# --- 1. MBTI 식물 데이터 ---
+# 2. 현실 기반 16가지 식물 데이터 정의
 PLANT_DATA = {
     "ENFP": {"name": "몬스테라", "desc": "자유분방하게 잎을 찢으며 성장하는 교실의 분위기 메이커!", "img": "🌿"},
     "INFJ": {"name": "라벤더", "desc": "고요한 향기로 주변을 치유하는 사색적인 평화주의자.", "img": "💜"},
@@ -24,7 +24,6 @@ PLANT_DATA = {
     "INTP": {"name": "네펜데스", "desc": "독창적인 구조로 세상을 탐구하는 교실의 과학자.", "img": "🧪"}
 }
 
-# --- 2. 궁합 데이터 ---
 COMPAT = {
     "ENFP": {"best": "INFJ", "worst": "ISTJ"}, "INFJ": {"best": "ENFP", "worst": "ESTP"},
     "ESTJ": {"best": "ISFP", "worst": "INFP"}, "ISFP": {"best": "ESTJ", "worst": "ENTJ"},
@@ -36,7 +35,7 @@ COMPAT = {
     "ENTJ": {"best": "INTP", "worst": "ISFP"}, "INTP": {"best": "ENTJ", "worst": "ESFJ"}
 }
 
-# --- 3. 18개 질문 데이터 ---
+# 3. 절대 깨지지 않는 엄선된 18개 심화 질문 리스트
 QUESTIONS = [
     {"q": "식물 박람회에 갔을 때 나는?", "A": "모르는 사람들과 식물 정보를 나누며 활기차게 구경한다.", "B": "조용히 이어폰을 끼고 식물 하나하나를 관찰한다.", "type": "E/I"},
     {"q": "내 방에 식물을 둔다면?", "A": "거실이나 입구처럼 사람들이 잘 보는 곳에 둔다.", "B": "내 침대 옆이나 나만 볼 수 있는 구석진 곳에 둔다.", "type": "E/I"},
@@ -58,55 +57,59 @@ QUESTIONS = [
     {"q": "식물 영양제를 줄 때?", "A": "설명서에 나온 정량을 정확히 지켜서 준다.", "B": "이 정도면 되겠지 싶을 때 감으로 대충 듬뿍 준다.", "type": "P/J"}
 ]
 
-# --- 4. 실시간 DB 초기화 ---
-if "class_db" not in st.session_state:
-    st.session_state.class_db = pd.DataFrame([
+# 4. 가상 DB 공간 안전 확보
+if "db_list" not in st.session_state:
+    st.session_state.db_list = [
         {"반코드": "101", "이름": "김민준", "MBTI": "ENTJ", "식물": "인도고무나무"},
-        {"반코드": "101", "이름": "이서연", "MBTI": "INFP", "식물": "마리모"}
-    ])
+        {"반코드": "101", "이름": "이서연", "MBTI": "INFP", "식물": "마리모"},
+        {"반코드": "101", "이름": "박지우", "MBTI": "INFJ", "식물": "라벤더"}
+    ]
 
-# --- 스타일 설정 ---
+# 5. UI 및 스타일 주입
 st.markdown("""
 <style>
     @keyframes pulse { 0% { border: 2px solid #10b981; box-shadow: 0 0 5px #10b981; } 50% { border: 2px solid #34d399; box-shadow: 0 0 20px #10b981; } 100% { border: 2px solid #10b981; box-shadow: 0 0 5px #10b981; } }
-    .fantasy-card { animation: pulse 2s infinite; background-color: #ecfdf5; padding: 20px; border-radius: 15px; margin: 10px 0; }
-    .disaster-card { border: 2px solid #ef4444; background-color: #fef2f2; padding: 20px; border-radius: 15px; margin: 10px 0; }
+    .fantasy-card { animation: pulse 2s infinite; background-color: #ecfdf5; padding: 18px; border-radius: 12px; margin: 8px 0; }
+    .disaster-card { border: 2px solid #ef4444; background-color: #fef2f2; padding: 18px; border-radius: 12px; margin: 8px 0; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 메인 화면 ---
-st.title("🌿 우리 반 리얼 식물 MBTI 테스트")
-st.write("18문항의 질문으로 당신의 소울 식물을 찾고, 우리 반 통계를 확인하세요!")
+st.title("🌿 우리 반 실시간 식물 MBTI 교실")
+st.write("나의 리얼 일상 속 태도로 소울 식물을 찾고, 친구들과의 실시간 식물 지도를 완성해 보세요.")
 
-st.markdown("### 🔑 본인 정보를 입력하세요")
-col_in1, col_in2 = st.columns(2)
-with col_in1:
-    c_code = st.text_input("반 코드 (예: 101)", "101")
-with col_in2:
-    u_name = st.text_input("이름 (본인 이름을 적어주세요)", "")
+st.markdown("### 🔑 기본 정보 입력")
+c1, c2 = st.columns(2)
+with c1:
+    c_code = st.text_input("학급 코드 입력 (예: 101)", "101").strip()
+with c2:
+    u_name = st.text_input("이름을 입력해 주세요", "").strip()
 
 st.divider()
 
 if u_name:
-    tab1, tab2 = st.tabs(["📝 테스트 시작", "📊 우리 반 실시간 대시보드"])
+    t1, t2 = st.tabs(["📝 MBTI 테스트 진행", "📊 학급 실시간 대시보드"])
     
-    with tab1:
-        st.subheader(f"🌱 {u_name}님을 위한 18개 질문")
-        
+    with t1:
+        st.info("모든 문항에 체크한 뒤 맨 아래 [결과 제출하기] 버튼을 눌러주세요.")
         user_ans = {}
+        
+        # 모바일 화면 가독성 극대화를 위한 디자인 매핑
         for i, q in enumerate(QUESTIONS):
-            # 절대 깨지지 않는 안전한 라디오 버튼 문법으로 전면 수정
-            user_ans[i] = st.radio(f"**Q{i+1}. {q['q']}**", [q["A"], q["B"]], key=f"q_{i}")
+            user_ans[i] = st.radio(
+                f"**Q{i+1}. {q['q']}**", 
+                [q["A"], q["B"]], 
+                key=f"real_q_{i}"
+            )
             st.write("")
-        
-        submitted = st.button("🌿 나의 식물 결과 확인하기")
-        
-        if submitted:
+            
+        if st.button("🚀 나의 식물 결과 제출하기"):
             scores = {"E/I": 0, "S/N": 0, "F/T": 0, "P/J": 0}
             for i, q in enumerate(QUESTIONS):
-                if user_ans[i] == q["A"]: scores[q["type"]] += 1
-                else: scores[q["type"]] -= 1
-            
+                if user_ans[i] == q["A"]:
+                    scores[q["type"]] += 1
+                else:
+                    scores[q["type"]] -= 1
+                    
             res_mbti = (
                 ("E" if scores["E/I"] >= 0 else "I") +
                 ("S" if scores["S/N"] >= 0 else "N") +
@@ -114,5 +117,61 @@ if u_name:
                 ("P" if scores["P/J"] >= 0 else "J")
             )
             
-            new_data = pd.DataFrame([{"반코드": c_code, "이름": u_name, "MBTI": res_mbti, "식물": PLANT_DATA[res_mbti]["name"]}])
-            st.session_state.class_db = pd.concat(
+            # 중복 데이터 제거 방식의 간소화 안정화 로직
+            st.session_state.db_list = [item for item in st.session_state.db_list if not (item["반코드"] == c_code and item["이름"] == u_name)]
+            st.session_state.db_list.append({
+                "반코드": c_code, 
+                "이름": u_name, 
+                "MBTI": res_mbti, 
+                "식물": PLANT_DATA[res_mbti]["name"]
+            })
+            
+            st.balloons()
+            
+            r_col1, r_col2 = st.columns(2)
+            with r_col1:
+                st.success(f"🎉 테스트 완료! 당신은 {res_mbti}입니다.")
+                st.header(f"{PLANT_DATA[res_mbti]['img']} {PLANT_DATA[res_mbti]['name']}")
+                st.info(PLANT_DATA[res_mbti]['desc'])
+            with r_col2:
+                st.write("#### 🧬 소울 궁합 매칭")
+                st.write(f"💚 환상의 단짝: **{PLANT_DATA[COMPAT[res_mbti]['best']]['name']}** ({COMPAT[res_mbti]['best']})")
+                st.write(f"💔 환장의 상성: **{PLANT_DATA[COMPAT[res_mbti]['worst']]['name']}** ({COMPAT[res_mbti]['worst']})")
+
+    with t2:
+        df = pd.DataFrame(st.session_state.db_list)
+        class_df = df[df["반코드"] == c_code]
+        
+        if not class_df.empty:
+            d_col1, d_col2 = st.columns([2, 1])
+            with d_col1:
+                st.write("#### 📈 우리 반 식물 분포 현황")
+                st.bar_chart(class_df["MBTI"].value_counts())
+            with d_col2:
+                st.write("#### 📋 가드너 참여 명단")
+                st.dataframe(class_df[["이름", "MBTI", "식물"]], use_container_width=True, hide_index=True)
+                
+            st.divider()
+            st.write("#### 🤝 실시간 케미 매칭 상황")
+            
+            my_info = class_df[class_df["이름"] == u_name]
+            if not my_info.empty:
+                my_mbti = my_info.iloc[0]["MBTI"]
+                b_mbti = COMPAT[my_mbti]["best"]
+                w_mbti = COMPAT[my_mbti]["worst"]
+                
+                m1, m2 = st.columns(2)
+                with m1:
+                    st.success("✨ 실시간 우리 반 단짝 (Pulse)")
+                    for _, row in class_df.iterrows():
+                        if row["MBTI"] == b_mbti and row["이름"] != u_name:
+                            st.markdown(f"<div class='fantasy-card'>🎯 <b>{row['이름']}</b> ({row['식물']}) 님이 당신의 소울 가드너입니다!</div>", unsafe_allow_html=True)
+                with m2:
+                    st.error("⚡ 주의 요망 상성")
+                    for _, row in class_df.iterrows():
+                        if row["MBTI"] == w_mbti and row["이름"] != u_name:
+                            st.markdown(f"<div class='disaster-card'>💥 <b>{row['이름']}</b> ({row['식물']}) 님과 가치관 조율이 필요합니다!</div>", unsafe_allow_html=True)
+        else:
+            st.warning("등록된 데이터가 없습니다. 먼저 테스트를 완료해 주세요.")
+else:
+    st.info("💡 위 입력창에 본인의 이름과 학급 코드를 입력하면 즉시 18개 질문이 나타납니다.")
