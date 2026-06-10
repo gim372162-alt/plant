@@ -43,7 +43,7 @@ QUESTIONS = [
     {"q": "1. 식물원 체험학습을 갈 때 나는?", "A": "친구들과 모여서 수다 떨며 시끌벅적하게 가고 싶다.", "B": "친한 친구 한두 명과 조용히 식물을 관찰하며 가고 싶다.", "type": "E/I"},
     {"q": "2. 새로 산 화분을 방에 둘 때 나의 행동은?", "A": "눈에 잘 띄고 예쁜 곳에 일단 올려둔다.", "B": "햇빛 양, 통풍 위치를 꼼꼼히 계산해서 최적의 자리에 둔다.", "type": "P/J"},
     {"q": "3. 시들어가는 식물을 보았을 때 먼저 드는 생각은?", "A": "헉, 불쌍해... 왜 시들었지? 속상하다.", "B": "물이 부족한가? 과습인가? 원인을 분석해야겠다.", "type": "F/T"},
-    {"q": "4. 식물 가꾸기 관찰 일지를 쓸 때 나는?", "A": "오늘 식물이 얼마나 자랐는지 눈에 보이는 대로 정확히 기록한다.", "B": "식물이 자라는 모습을 보며 느낀 감상이나 상상을 더해 기록한다.", "type": "S/N"},
+    {"q": "4. 식물 가꾸기 관찰 일지를 쓸 때 나는?", "A": "오늘 식물이 얼마나 자랐인지 눈에 보이는 대로 정확히 기록한다.", "B": "식물이 자라는 모습을 보며 느낀 감상이나 상상을 더해 기록한다.", "type": "S/N"},
     {"q": "5. 주말에 친구가 깜짝 식물 마켓에 가자고 한다면?", "A": "좋아! 당장 가자! 계획 없어도 재밌겠다.", "B": "미리 말해줬으면 좋았을 텐데... 동선을 생각하느라 고민된다.", "type": "P/J"},
     {"q": "6. 친구가 '나 오늘 우울해서 반려식물 샀어'라고 한다면?", "A": "무슨 일 있어? 왜 우울해? 기분은 좀 나아졌어?", "B": "오 무슨 식물 샀어? 키우기 쉬운 거야?", "type": "F/T"},
     {"q": "7. 식물원 가이드 투어를 들을 때 나는?", "A": "설명해 주는 식물의 이름과 특징을 그대로 기억하려 노력한다.", "B": "식물의 유래나 비밀스러운 이야기에 상상의 나래를 편다.", "type": "S/N"},
@@ -56,7 +56,6 @@ QUESTIONS = [
 
 # --- 4. 가상 실시간 데이터베이스 (초기화) ---
 if "class_db" not in st.session_state:
-    # 예시용 가상 데이터 미리 넣어두기 (실시간 동기화 느낌 전달용)
     st.session_state.class_db = pd.DataFrame([
         {"반코드": "301", "이름": "김민준", "MBTI": "ENFP", "식물": "몬스테라"},
         {"반코드": "301", "이름": "이서연", "MBTI": "INFJ", "식물": "라벤더"},
@@ -132,20 +131,19 @@ else:
             answers[i] = st.radio(f"선택 {i}", [q["A"], q["B"]], label_visibility="collapsed")
             st.markdown("<br>", unsafe_allow_html=True)
             
-        submit_btn = st.form_submit_with_button("🌿 나의 식물 결과 확인하고 실시간 동기화하기")
+        # 오류가 수정된 정상적인 스트림릿 제출 버튼 함수입니다.
+        submit_btn = st.form_submit_button("🌿 나의 식물 결과 확인하고 실시간 동기화하기")
         
     if submit_btn:
-        # MBTI 계산 계산
+        # MBTI 계산
         for i, q in enumerate(QUESTIONS):
             q_type = q["type"]
             if answers[i] == q["A"]:
-                # A를 선택했을 때의 성향 매칭
                 if q_type == "E/I": scores["E/I"] += 1
                 elif q_type == "S/N": scores["S/N"] += 1
                 elif q_type == "F/T": scores["F/T"] += 1
                 elif q_type == "P/J": scores["P/J"] += 1
             else:
-                # B를 선택했을 때
                 if q_type == "E/I": scores["E/I"] -= 1
                 elif q_type == "S/N": scores["S/N"] -= 1
                 elif q_type == "F/T": scores["F/T"] -= 1
@@ -161,9 +159,9 @@ else:
         my_plant = MBTI_PLANTS[my_mbti]["name"]
         my_desc = MBTI_PLANTS[my_mbti]["desc"]
         
-        # 실시간 DB 업데이트 (기존 데이터 있으면 덮어쓰기, 없으면 추가)
+        # 실시간 DB 업데이트
         db = st.session_state.class_db
-        db = db[~((db["반코드"] == room_code) & (db["이름"] == student_name))] # 기존 데이터 제거
+        db = db[~((db["반코드"] == room_code) & (db["이름"] == student_name))] 
         new_row = pd.DataFrame([{"반코드": room_code, "이름": student_name, "MBTI": my_mbti, "식물": my_plant}])
         st.session_state.class_db = pd.concat([db, new_row], ignore_index=True)
         
@@ -178,14 +176,12 @@ else:
             st.markdown(f"## 당신은 영혼의 반려식물 **[{my_plant}]** 입니다!")
             st.info(my_desc)
             
-            # 가상 이미지 박스 (체험용 일러스트 공간)
             st.image("https://images.unsplash.com/photo-1545241047-6083a3684587?w=500", 
                      caption=f"아름답게 자라나는 {my_plant}의 모습 (예시 사진)", use_container_width=True)
             
         with col2:
             st.markdown(f"### 📊 우리 반 ({room_code}반) 실시간 매칭 실황")
             
-            # 같은 반 학생 데이터만 필터링
             class_mates = st.session_state.class_db[st.session_state.class_db["반코드"] == room_code]
             
             target_best = COMPATIBILITY[my_mbti]["환상"]
@@ -219,7 +215,7 @@ else:
             else:
                 st.caption(f"아직 우리 반에 환장의 조합({target_worst})을 가진 친구가 없습니다.")
                 
-            # 3. 다른 중간 조합 퍼센트로 나타내기
+            # 3. 다른 중간 조합 퍼센트 출력
             st.markdown("#### 🌿 다른 친구들과의 케미 지수")
             other_mates = class_mates[(class_mates["이름"] != student_name) & 
                                       (class_mates["MBTI"] != target_best) & 
@@ -227,10 +223,9 @@ else:
             
             if not other_mates.empty:
                 for _, mate in other_mates.iterrows():
-                    # MBTI 글자 일치 개수에 따라 재미용 퍼센트 랜덤/매칭 계산
                     match_count = sum(1 for a, b in zip(my_mbti, mate['MBTI']) if a == b)
-                    pct = 30 + (match_count * 15) + random.randint(-5, 5) # 기본 30% + 일치당 15% + 약간의 변동
-                    pct = min(max(pct, 15), 90) # 15% ~ 90% 사이 제한
+                    pct = 30 + (match_count * 15) + random.randint(-5, 5)
+                    pct = min(max(pct, 15), 90)
                     
                     st.markdown(f"""
                     <div class="normal-match-card">
